@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>LabStir - Pro Overhead Stirrer</title>
+<style>
+  :root{--bg:#0f1419;--card:#1b2430;--accent:#27c08a;--danger:#e5484d;--txt:#e6edf3;--muted:#8b98a5}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt)}
+  header{padding:16px 20px;background:#11161d;border-bottom:1px solid #283242}
+  header h1{margin:0;font-size:20px;letter-spacing:.5px}
+  header span{color:var(--muted);font-size:13px}
+  .wrap{max-width:880px;margin:0 auto;padding:20px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:680px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid #283242;border-radius:12px;padding:16px}
+  .card h2{margin:0 0 12px;font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .row{display:flex;align-items:center;justify-content:space-between;margin:10px 0}
+  .big{font-size:40px;font-weight:700}
+  .unit{font-size:16px;color:var(--muted)}
+  input[type=range]{width:100%}
+  button{background:var(--accent);color:#04231a;border:0;border-radius:8px;padding:12px 16px;font-size:15px;font-weight:600;cursor:pointer;width:100%}
+  button.danger{background:var(--danger);color:#fff}
+  button.ghost{background:#2a3543;color:var(--txt)}
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .btns.three{grid-template-columns:1fr 1fr 1fr}
+  label.sw{display:flex;align-items:center;gap:8px;font-size:14px}
+  .status{display:inline-block;padding:4px 10px;border-radius:20px;font-size:12px;background:#2a3543}
+  .status.run{background:#0e3b2c;color:var(--accent)}
+  .status.stop{background:#3b1e1f;color:var(--danger)}
+  .meta{font-size:12px;color:var(--muted);margin-top:8px}
+  a.up{display:block;text-align:center;margin-top:6px;color:var(--accent);text-decoration:none;font-size:13px}
+  .pill{font-size:12px;background:#222c38;padding:2px 8px;border-radius:6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>LabStir <span>Pro Overhead Stirrer &middot; labst.local</span></h1>
+</header>
+<div class="wrap">
+  <div class="grid">
+    <!-- Live status -->
+    <div class="card">
+      <h2>Status</h2>
+      <div class="row"><span class="status stop" id="st">STOPPED</span><span class="pill" id="dir">CW</span></div>
+      <div class="row"><div><span class="big" id="rpm">0</span> <span class="unit">RPM</span></div></div>
+      <div class="meta" id="meta">Temp: -- &deg;C &middot; Restarts: 0 &middot; Uptime: 0s</div>
+    </div>
+
+    <!-- Speed -->
+    <div class="card">
+      <h2>Speed</h2>
+      <div class="row"><span>Target</span><span class="big" id="trpm">300</span></div>
+      <input type="range" id="speed" min="1" max="1500" value="300" step="1">
+      <div class="row" style="margin-top:6px">
+        <label class="sw"><input type="checkbox" id="pot"> Potentiometer control</label>
+      </div>
+      <div class="meta">Live pot value: <span id="potval">--</span> RPM</div>
+    </div>
+
+    <!-- Timer -->
+    <div class="card">
+      <h2>Run Timer</h2>
+      <div class="row"><span>Duration</span></div>
+      <input type="range" id="timer" min="0" max="86400" value="0" step="60">
+      <div class="meta">0 = off &middot; <span id="timerval">off</span> (max 24h)</div>
+      <div class="meta" id="timerleft"></div>
+    </div>
+
+    <!-- Options -->
+    <div class="card">
+      <h2>Options</h2>
+      <label class="sw"><input type="checkbox" id="sstart" checked> Soft Start</label><br>
+      <label class="sw"><input type="checkbox" id="sstop" checked> Soft Stop</label>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="card" style="margin-top:16px">
+    <h2>Controls</h2>
+    <div class="btns three">
+      <button id="bstart">START</button>
+      <button class="ghost" id="bdir">DIRECTION</button>
+      <button class="danger" id="bstop">STOP</button>
+    </div>
+    <div class="btns">
+      <button class="danger" id="bestop">EMERGENCY STOP</button>
+    </div>
+    <a class="up" href="/update">Firmware Update (OTA) &raquo;</a>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+function fmtTime(s){
+  if(!s) return 'off';
+  if(s<3600) return Math.round(s/60)+' min';
+  return (s/3600).toFixed(1)+' h';
+}
+async function api(p,body){
+  let r;
+  if(body!==undefined){ r=await fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); }
+  else { r=await fetch(p); }
+  return r.json();
+}
+async function refresh(){
+  const s=await api('/api/status');
+  $('st').textContent = s.running ? 'RUNNING' : 'STOPPED';
+  $('st').className = 'status ' + (s.running?'run':'stop');
+  $('dir').textContent = s.dir;
+  $('rpm').textContent = s.rpm;
+  $('trpm').textContent = s.target;
+  $('meta').textContent = `Temp: ${s.tempC.toFixed(1)} °C · Restarts: ${s.restarts} · Uptime: ${s.uptime}s`;
+  $('potval').textContent = s.pot ? s.rpm : '--';
+  if(!s.timerActive){ $('timerleft').textContent=''; }
+  else { $('timerleft').textContent='Timer running'; }
+  // sync controls
+  $('sstart').checked=s.softStart; $('sstop').checked=s.softStop;
+  $('pot').checked=s.pot;
+}
+// events
+$('speed').oninput = e=>{ $('trpm').textContent=e.target.value; api('/api/set',{rpm:+e.target.value}); };
+$('timer').oninput = e=>{ $('timerval').textContent=fmtTime(+e.target.value); api('/api/set',{timerSec:+e.target.value}); };
+$('pot').onchange = e=>api('/api/set',{pot:e.target.checked});
+$('sstart').onchange = e=>api('/api/set',{softStart:e.target.checked});
+$('sstop').onchange = e=>api('/api/set',{softStop:e.target.checked});
+$('bstart').onclick = ()=>api('/api/start');
+$('bstop').onclick  = ()=>api('/api/stop');
+$('bestop').onclick = ()=>api('/api/estop');
+$('bdir').onclick   = ()=>api('/api/dir');
+setInterval(refresh,1000);
+refresh();
+</script>
+</body>
+</html>
