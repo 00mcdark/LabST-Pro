@@ -3,7 +3,7 @@
  *
  * Features:
  *  - Always-on Wi-Fi Access Point "labst" / "mc142536"
- *  - Async web UI + REST API + OTA firmware update (LittleFS hosted)
+ *  - Web UI + REST API + OTA firmware update (LittleFS hosted)
  *  - DRV8825 / NEMA17 control: CW/CCW, 1-1500 RPM, soft start/stop, E-Stop
  *  - Front panel: pot, Start, Stop, Direction buttons + status LED
  *  - Run timer 1 min .. 24 h (auto stop)
@@ -14,7 +14,7 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
-#include <ESPAsyncWebServer.h>
+#include <ESP8266WebServer.h>
 #include <ArduinoOTA.h>
 #include <LittleFS.h>
 #include <Ticker.h>
@@ -120,6 +120,7 @@ void setup() {
 void loop() {
   ArduinoOTA.handle();
   MDNS.update();
+  server.handleClient();
 
   stirrer.update();
 

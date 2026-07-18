@@ -3,6 +3,7 @@
  * Written infrequently (only on user changes) to limit flash wear.
  */
 #include "settings.h"
+#include "config.h"
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 
@@ -10,7 +11,7 @@ bool loadSettings(Settings &s) {
   if (!LittleFS.exists(SETTINGS_FILE)) return false;
   File f = LittleFS.open(SETTINGS_FILE, "r");
   if (!f) return false;
-  DynamicJsonDocument doc(1024);
+  JsonDocument doc;
   DeserializationError err = deserializeJson(doc, f);
   f.close();
   if (err) return false;
@@ -27,7 +28,7 @@ bool loadSettings(Settings &s) {
 }
 
 bool saveSettings(const Settings &s) {
-  DynamicJsonDocument doc(1024);
+  JsonDocument doc;
   doc["magic"]   = s.magic;
   doc["rpm"]     = s.rpm;
   doc["dir"]     = s.direction;

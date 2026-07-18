@@ -9,7 +9,9 @@
  *  - The ISR must carry ICACHE_RAM_ATTR or the chip crashes on first tick.
  *  - timer1_isr_init() must be called once before enabling.
  *  - timer1 max ticks = 8388607 (23-bit). 1 RPM -> 3,000,000 ticks (ok).
+ *  - TIM_DIV1 / TIM_EDGE / TIM_LOOP are provided by the core (Arduino.h).
  */
+#include "config.h"
 #include "stepper.h"
 
 // Core ESP8266 timer1 API (declared in Arduino.h / cores/esp8266/Arduino.h)
@@ -21,9 +23,6 @@ extern "C" {
   void timer1_disable(void);
   void timer1_write(uint32_t ticks);
 }
-#define TIM_DIV1    0     // 80 MHz -> 80 ticks / us
-#define TIM_EDGE    1
-#define TIM_LOOP    1
 
 static Stepper* g_inst = nullptr;
 static volatile bool g_stepState = false;
